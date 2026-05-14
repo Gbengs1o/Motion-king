@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MotionKing</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>MotionKing</h1>
+        <p>Paste HTML or SVG, preview it live, then render it as MP4 or PNG frames.</p>
+      </div>
+      <div class="topbar-actions">
+        <button id="themeButton" type="button" aria-pressed="false">Dark</button>
+        <button id="drawButton" type="button">Draw</button>
+        <button id="openFileButton" type="button">Open HTML</button>
+        <button id="watchButton" class="toggle-button" type="button" aria-pressed="false" disabled>Check Changes: Off</button>
+        <input id="fileInput" class="hidden-file-input" type="file" accept=".html,.htm,.svg,text/html,image/svg+xml">
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="editor-pane" aria-label="Code editor">
+        <div class="pane-header">
+          <span>Code</span>
+          <button id="sampleButton" type="button">Load Sample</button>
+        </div>
+        <textarea id="codeInput" spellcheck="false" aria-label="HTML or SVG source"></textarea>
+      </section>
+
+      <section class="preview-pane" aria-label="Preview and render controls">
+        <div class="pane-header">
+          <span>Preview</span>
+          <div class="pane-actions">
+            <button id="fullViewButton" type="button">Full View</button>
+            <button id="refreshButton" type="button">Refresh</button>
+          </div>
+        </div>
+        <div class="preview-shell">
+          <iframe id="previewFrame" title="Rendered component preview" sandbox="allow-scripts"></iframe>
+        </div>
+
+        <form id="renderForm" class="controls">
+          <label>
+            Size
+            <select id="sizeModeInput">
+              <option value="full">Full View</option>
+              <option value="preview">Preview</option>
+              <option value="custom">Custom</option>
+            </select>
+          </label>
+          <label>
+            Width
+            <input id="widthInput" type="number" min="120" max="3840" step="1" value="900">
+          </label>
+          <label>
+            Height
+            <input id="heightInput" type="number" min="120" max="2160" step="1" value="300">
+          </label>
+          <label>
+            Duration
+            <input id="durationInput" type="number" min="0.1" max="60" step="0.1" value="8">
+          </label>
+          <label>
+            FPS
+            <input id="fpsInput" type="number" min="1" max="60" step="1" value="24">
+          </label>
+          <label>
+            Format
+            <select id="formatInput">
+              <option value="video">MP4 video</option>
+              <option value="sequence">PNG sequence</option>
+            </select>
+          </label>
+          <label class="check-label">
+            <input id="fullPageInput" type="checkbox">
+            Full page
+          </label>
+          <button id="renderButton" type="submit">Render</button>
+        </form>
+
+        <div id="progressWrap" class="progress-wrap" hidden>
+          <div class="progress-meta">
+            <span id="progressLabel">Preparing render</span>
+            <span id="progressPercent">0%</span>
+          </div>
+          <div class="progress-track">
+            <div id="progressBar" class="progress-bar"></div>
+          </div>
+        </div>
+
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <div id="fullView" class="full-view" hidden>
+      <div class="full-view-bar">
+        <span>Full View</span>
+        <button id="closeFullViewButton" type="button">Close</button>
+      </div>
+      <iframe id="fullPreviewFrame" title="Full rendered component preview" sandbox="allow-scripts"></iframe>
+    </div>
+
+    <div id="drawModal" class="modal-backdrop" hidden>
+      <section class="draw-panel" aria-label="Vector drawing tool">
+        <div class="draw-header">
+          <div>
+            <h2>Drawing Tool</h2>
+            <p>Sketch a quick transparent PNG, then export or copy it.</p>
+          </div>
+          <button id="closeDrawButton" type="button">Close</button>
+        </div>
+
+        <div class="draw-toolbar">
+          <div class="tool-group">
+            <button id="penToolButton" class="tool-button" type="button" aria-pressed="true">Pen</button>
+            <button id="eraserToolButton" class="tool-button" type="button" aria-pressed="false">Eraser</button>
+          </div>
+          <div class="tool-group">
+            <button id="undoDrawButton" type="button" disabled>Undo</button>
+            <button id="redoDrawButton" type="button" disabled>Redo</button>
+          </div>
+          <div class="tool-group color-tools">
+            <label>
+              Color
+              <input id="drawColorInput" type="color" value="#24b8a8">
+            </label>
+            <div class="swatches" aria-label="Pen color swatches">
+              <button class="swatch" type="button" style="--swatch:#24b8a8" data-color="#24b8a8" aria-label="Teal"></button>
+              <button class="swatch" type="button" style="--swatch:#f6c85f" data-color="#f6c85f" aria-label="Gold"></button>
+              <button class="swatch" type="button" style="--swatch:#ffffff" data-color="#ffffff" aria-label="White"></button>
+              <button class="swatch" type="button" style="--swatch:#111416" data-color="#111416" aria-label="Black"></button>
+              <button class="swatch" type="button" style="--swatch:#e16a78" data-color="#e16a78" aria-label="Red"></button>
+            </div>
+          </div>
+          <label class="size-tool">
+            Size
+            <input id="drawSizeInput" type="range" min="2" max="64" value="10">
+          </label>
+          <div class="tool-group action-tools">
+            <button id="importLayerButton" type="button">Import Layer</button>
+            <input id="layerFileInput" class="hidden-file-input" type="file" accept="image/*,.svg,image/svg+xml" multiple>
+            <button id="clearDrawButton" type="button">Clear</button>
+            <button id="copyDrawButton" type="button">Copy PNG</button>
+            <button id="exportDrawButton" type="button">Export PNG</button>
+          </div>
+        </div>
+
+        <div class="draw-body">
+          <div class="draw-stage">
+            <canvas id="drawCanvas" width="1200" height="720" aria-label="Drawing canvas"></canvas>
+          </div>
+          <aside class="layers-panel" aria-label="Imported layers">
+            <h3>Layers</h3>
+            <div id="layersList" class="layers-list">
+              <p>No imported layers.</p>
+            </div>
+          </aside>
+        </div>
+        <div id="drawStatus" class="draw-status" role="status" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

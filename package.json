@@ -1,0 +1,22 @@
+{
+  "name": "motionking",
+  "version": "1.0.0",
+  "description": "Paste, preview, edit, and render web components as images or video.",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "web": "node server.js",
+    "install-shortcuts": "powershell -ExecutionPolicy Bypass -File scripts/install-shortcuts.ps1"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "express": "^4.19.2",
+    "ffmpeg-static": "^5.2.0",
+    "fs-extra": "^11.2.0",
+    "playwright": "^1.45.3"
+  },
+  "devDependencies": {
+    "electron": "^42.0.1"
+  }
+}
