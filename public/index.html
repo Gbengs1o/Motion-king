@@ -17,6 +17,7 @@
         <button id="newWindowButton" type="button">New Window</button>
         <button id="themeButton" type="button" aria-pressed="false">Dark</button>
         <button id="drawButton" type="button">Draw</button>
+        <button id="flipbookButton" type="button">Flipbook</button>
         <button id="openFileButton" type="button">Open HTML</button>
         <button id="watchButton" class="toggle-button" type="button" aria-pressed="false" disabled>Check Changes: Off</button>
         <input id="fileInput" class="hidden-file-input" type="file" accept=".html,.htm,.svg,text/html,image/svg+xml">
@@ -72,6 +73,7 @@
           <label>
             Format
             <select id="formatInput">
+              <option value="image">PNG image</option>
               <option value="video">MP4 video</option>
               <option value="sequence">PNG sequence</option>
             </select>
@@ -114,9 +116,25 @@
     <div id="fullView" class="full-view" hidden>
       <div class="full-view-bar">
         <span>Full View</span>
-        <button id="closeFullViewButton" type="button">Close</button>
+        <div class="full-view-actions">
+          <button id="freezeFullViewButton" class="toggle-button" type="button" aria-pressed="false">Freeze</button>
+          <button id="drawFullViewButton" type="button">Draw</button>
+          <button id="refreshFullViewButton" type="button">Refresh</button>
+          <button id="toggleConsoleButton" type="button">Console</button>
+          <button id="closeFullViewButton" type="button">Close</button>
+        </div>
       </div>
       <iframe id="fullPreviewFrame" title="Full rendered component preview" sandbox="allow-scripts"></iframe>
+      <section id="fullConsole" class="full-console" aria-label="Full View console" hidden>
+        <div class="full-console-header">
+          <span>Console</span>
+          <div class="full-console-actions">
+            <button id="copyConsoleButton" type="button">Copy</button>
+            <button id="clearConsoleButton" type="button">Clear</button>
+          </div>
+        </div>
+        <pre id="consoleOutput"></pre>
+      </section>
     </div>
 
     <div id="drawModal" class="modal-backdrop" hidden>
@@ -176,6 +194,89 @@
           </aside>
         </div>
         <div id="drawStatus" class="draw-status" role="status" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <div id="flipbookModal" class="modal-backdrop" hidden>
+      <section class="flipbook-panel" aria-label="Flipbook direction tool">
+        <div class="draw-header">
+          <div>
+            <h2>Flipbook</h2>
+            <p>Draw simple frame-by-frame directions for AI.</p>
+          </div>
+          <div class="tool-group">
+            <button id="minimizeFlipbookButton" type="button">Minimize</button>
+            <button id="closeFlipbookButton" type="button">Close</button>
+          </div>
+        </div>
+
+        <div class="flipbook-toolbar">
+          <div class="tool-group">
+            <button id="flipPrevButton" type="button">Prev</button>
+            <button id="flipNextButton" type="button">Next</button>
+            <button id="flipPlayButton" type="button">Play</button>
+          </div>
+          <label>
+            FPS
+            <input id="flipFpsInput" type="number" min="1" max="24" step="1" value="6">
+          </label>
+          <label class="check-label flip-check">
+            <input id="flipOnionInput" type="checkbox" checked>
+            Onion Skin
+          </label>
+          <div class="tool-group">
+            <button id="flipSelectButton" class="tool-button" type="button" aria-pressed="false">Select</button>
+            <button id="flipPenButton" class="tool-button" type="button" aria-pressed="true">Pen</button>
+            <button id="flipEraserButton" class="tool-button" type="button" aria-pressed="false">Eraser</button>
+            <button id="flipLineButton" class="tool-button" type="button" aria-pressed="false">Line</button>
+            <button id="flipRectButton" class="tool-button" type="button" aria-pressed="false">Rect</button>
+            <button id="flipEllipseButton" class="tool-button" type="button" aria-pressed="false">Ellipse</button>
+            <button id="flipTransformButton" class="tool-button" type="button" aria-pressed="false">Transform</button>
+          </div>
+          <div class="tool-group">
+            <button id="flipUndoButton" type="button" disabled>Undo</button>
+            <button id="flipRedoButton" type="button" disabled>Redo</button>
+          </div>
+          <label>
+            Color
+            <input id="flipColorInput" type="color" value="#e16a78">
+          </label>
+          <label class="size-tool">
+            Size
+            <input id="flipSizeInput" type="range" min="2" max="56" value="8">
+          </label>
+          <div class="tool-group">
+            <button id="flipCopyButton" type="button">Copy</button>
+            <button id="flipPasteButton" type="button">Paste</button>
+            <button id="flipScaleDownButton" type="button">Scale -</button>
+            <button id="flipScaleUpButton" type="button">Scale +</button>
+          </div>
+          <div class="tool-group action-tools">
+            <button id="flipAddFrameButton" type="button">Add Frame</button>
+            <button id="flipDuplicateFrameButton" type="button">Duplicate</button>
+            <button id="flipDeleteFrameButton" type="button">Delete</button>
+            <button id="flipClearFrameButton" type="button">Clear Frame</button>
+            <button id="flipClearAllButton" type="button">Clear All</button>
+            <button id="flipExportPdfButton" type="button">Export PDF</button>
+          </div>
+        </div>
+
+        <div class="flipbook-body">
+          <div class="flipbook-stage-wrap">
+            <div class="flipbook-stage">
+              <canvas id="flipCanvas" width="960" height="540" aria-label="Flipbook drawing canvas"></canvas>
+            </div>
+            <label class="frame-note-label">
+              Frame note
+              <textarea id="flipNoteInput" rows="3" placeholder="Example: move the logo up, add glow, then fade the text."></textarea>
+            </label>
+          </div>
+          <aside class="flipbook-side">
+            <div class="flipbook-count" id="flipFrameCount">Frame 1 of 1</div>
+            <div id="flipFrameStrip" class="flip-frame-strip" aria-label="Flipbook frames"></div>
+          </aside>
+        </div>
+        <div id="flipStatus" class="draw-status" role="status" aria-live="polite"></div>
       </section>
     </div>
 
