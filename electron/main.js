@@ -48,6 +48,21 @@ ipcMain.handle("clipboard:copyPng", async (_event, dataUrl) => {
   return true;
 });
 
+ipcMain.handle("window:captureRegion", async (event, rect) => {
+  const ownerWindow = BrowserWindow.fromWebContents(event.sender) || mainWindow;
+  if (!ownerWindow) {
+    throw new Error("No MotionKing window is available to capture.");
+  }
+
+  const bounds = normalizeCaptureRect(rect);
+  const image = await ownerWindow.webContents.capturePage(bounds);
+  if (image.isEmpty()) {
+    throw new Error("The selected frame could not be captured.");
+  }
+
+  return image.toDataURL();
+});
+
 ipcMain.handle("window:new", () => {
   createWindow(appUrl);
   return true;
@@ -144,6 +159,15 @@ function log(message) {
 
 function logError(error) {
   log(error && error.stack ? error.stack : String(error));
+}
+
+function normalizeCaptureRect(rect) {
+  const x = Math.max(0, Math.round(Number(rect && rect.x) || 0));
+  const y = Math.max(0, Math.round(Number(rect && rect.y) || 0));
+  const width = Math.max(1, Math.round(Number(rect && rect.width) || 1));
+  const height = Math.max(1, Math.round(Number(rect && rect.height) || 1));
+
+  return { x, y, width, height };
 }
 
 async function readFileSnapshot(filePath) {
