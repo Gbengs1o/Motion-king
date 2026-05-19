@@ -338,6 +338,79 @@ button:disabled {
   font-weight: 700;
 }
 
+.video-review {
+  display: grid;
+  gap: 12px;
+  margin: 0 14px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--panel-strong) 82%, transparent);
+}
+
+.video-review[hidden] {
+  display: none;
+}
+
+.video-review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.video-review-header > div:first-child {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.video-review-header strong {
+  font-size: 14px;
+}
+
+.video-review-header span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.video-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.video-review-actions a {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 14px;
+  background: var(--panel-strong);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+#captureFrameButton {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+}
+
+#renderedVideo {
+  width: 100%;
+  max-height: min(42vh, 440px);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #05080a;
+}
+
 .progress-wrap {
   display: grid;
   gap: 8px;
@@ -595,9 +668,9 @@ button:disabled {
 
 #drawCanvas {
   display: block;
-  width: min(100%, calc((100vh - 270px) * 1.6667));
+  width: min(100%, 1200px);
+  height: auto;
   max-width: 1200px;
-  aspect-ratio: 5 / 3;
   margin: 0 auto;
   border: 1px solid var(--border);
   border-radius: 8px;

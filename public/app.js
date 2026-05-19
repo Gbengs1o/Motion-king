@@ -2,6 +2,7 @@ const codeInput = document.querySelector("#codeInput");
 const previewFrame = document.querySelector("#previewFrame");
 const fullPreviewFrame = document.querySelector("#fullPreviewFrame");
 const fullView = document.querySelector("#fullView");
+const newWindowButton = document.querySelector("#newWindowButton");
 const fullViewButton = document.querySelector("#fullViewButton");
 const closeFullViewButton = document.querySelector("#closeFullViewButton");
 const fileInput = document.querySelector("#fileInput");
@@ -14,6 +15,11 @@ const sampleButton = document.querySelector("#sampleButton");
 const renderForm = document.querySelector("#renderForm");
 const renderButton = document.querySelector("#renderButton");
 const statusEl = document.querySelector("#status");
+const videoReview = document.querySelector("#videoReview");
+const videoReviewMeta = document.querySelector("#videoReviewMeta");
+const renderedVideo = document.querySelector("#renderedVideo");
+const captureFrameButton = document.querySelector("#captureFrameButton");
+const downloadVideoLink = document.querySelector("#downloadVideoLink");
 const sizeModeInput = document.querySelector("#sizeModeInput");
 const widthInput = document.querySelector("#widthInput");
 const heightInput = document.querySelector("#heightInput");
@@ -118,6 +124,7 @@ let currentFileSize = 0;
 let watchTimer = 0;
 let watchInFlight = false;
 let progressTimer = 0;
+let renderedVideoUrl = "";
 let drawTool = "pen";
 let isDrawing = false;
 let activeStroke = null;
@@ -133,6 +140,19 @@ syncRenderSizeFields();
 redrawCanvas();
 renderLayersList();
 
+newWindowButton.addEventListener("click", async () => {
+  if (window.motionKing && window.motionKing.newWindow) {
+    try {
+      await window.motionKing.newWindow();
+    } catch (error) {
+      setStatus(`Could not open a new window: ${error.message}`);
+    }
+    return;
+  }
+
+  window.open(window.location.href, "_blank", "noopener");
+});
+
 codeInput.addEventListener("input", () => {
   window.clearTimeout(previewTimer);
   previewTimer = window.setTimeout(() => {
@@ -142,6 +162,7 @@ codeInput.addEventListener("input", () => {
 });
 
 refreshButton.addEventListener("click", updatePreview);
+captureFrameButton.addEventListener("click", captureRenderedVideoFrame);
 
 themeButton.addEventListener("click", () => {
   const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
@@ -294,6 +315,7 @@ renderForm.addEventListener("submit", async (event) => {
   renderButton.textContent = "Rendering";
   setProgress(0, "Preparing render");
   progressWrap.hidden = false;
+  hideVideoReview();
   setStatus(`Rendering ${payload.width} x ${payload.height}. Short clips usually take a few moments.`);
 
   try {
@@ -312,9 +334,15 @@ renderForm.addEventListener("submit", async (event) => {
     const label = result.type === "sequence" ? "Download PNG sequence" : "Download MP4";
     setProgress(100, "Render complete");
     setStatus(`${label}: <a href="${result.url}" download>${result.url}</a>`);
+    if (result.type === "video") {
+      showVideoReview(result);
+    } else {
+      hideVideoReview();
+    }
   } catch (error) {
     setStatus(error.message);
     setProgress(100, "Render failed");
+    hideVideoReview();
   } finally {
     window.clearInterval(progressTimer);
     progressTimer = 0;
@@ -360,6 +388,121 @@ function setProgress(value, label) {
   progressLabel.textContent = label;
   progressPercent.textContent = `${progress}%`;
   progressBar.style.width = `${progress}%`;
+}
+
+function showVideoReview(result) {
+  renderedVideoUrl = result.url;
+  renderedVideo.src = result.url;
+  renderedVideo.load();
+  downloadVideoLink.href = result.url;
+  downloadVideoLink.download = result.url.split("/").pop() || "render.mp4";
+  videoReviewMeta.textContent = `${result.width} x ${result.height}, ${result.duration}s, ${result.fps} fps`;
+  videoReview.hidden = false;
+}
+
+function hideVideoReview() {
+  renderedVideoUrl = "";
+  renderedVideo.removeAttribute("src");
+  renderedVideo.load();
+  downloadVideoLink.href = "#";
+  videoReview.hidden = true;
+}
+
+async function captureRenderedVideoFrame() {
+  if (!renderedVideoUrl) {
+    setStatus("Render a video first, then capture a frame.");
+    return;
+  }
+
+  if (renderedVideo.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+    try {
+      await waitForVideoFrame(renderedVideo);
+    } catch (error) {
+      setStatus(`Could not capture video frame: ${error.message}`);
+      return;
+    }
+  }
+
+  renderedVideo.pause();
+
+  const width = renderedVideo.videoWidth || Number(widthInput.value) || drawCanvas.width;
+  const height = renderedVideo.videoHeight || Number(heightInput.value) || drawCanvas.height;
+  const frameCanvas = document.createElement("canvas");
+  frameCanvas.width = width;
+  frameCanvas.height = height;
+  frameCanvas.getContext("2d").drawImage(renderedVideo, 0, 0, width, height);
+
+  try {
+    const image = await loadImage(frameCanvas.toDataURL("image/png"));
+    saveDrawingState();
+    setDrawingCanvasSize(width, height);
+    drawingLayers = [{
+      id: createId(),
+      name: `Video frame ${formatVideoTime(renderedVideo.currentTime)}`,
+      image,
+      width,
+      height,
+      visible: true,
+      opacity: 1
+    }];
+    drawingStrokes = [];
+    renderLayersList();
+    redrawCanvas();
+    drawModal.hidden = false;
+    setDrawTool("pen");
+    setDrawStatus(`Captured ${formatVideoTime(renderedVideo.currentTime)}. Draw on the frame, then use Copy PNG.`);
+  } catch (error) {
+    setStatus(`Could not capture video frame: ${error.message}`);
+  }
+}
+
+function setDrawingCanvasSize(width, height) {
+  const nextWidth = Math.max(1, Math.round(Number(width) || 1));
+  const nextHeight = Math.max(1, Math.round(Number(height) || 1));
+
+  drawCanvas.width = nextWidth;
+  drawCanvas.height = nextHeight;
+  strokeCanvas.width = nextWidth;
+  strokeCanvas.height = nextHeight;
+}
+
+function waitForVideoFrame(video) {
+  return new Promise((resolve, reject) => {
+    const timeout = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("the video frame did not load in time"));
+    }, 5000);
+
+    const cleanup = () => {
+      window.clearTimeout(timeout);
+      video.removeEventListener("loadeddata", onLoaded);
+      video.removeEventListener("seeked", onLoaded);
+      video.removeEventListener("error", onError);
+    };
+
+    const onLoaded = () => {
+      cleanup();
+      resolve();
+    };
+
+    const onError = () => {
+      cleanup();
+      reject(new Error("the video could not be read"));
+    };
+
+    video.addEventListener("loadeddata", onLoaded, { once: true });
+    video.addEventListener("seeked", onLoaded, { once: true });
+    video.addEventListener("error", onError, { once: true });
+    video.load();
+  });
+}
+
+function formatVideoTime(seconds) {
+  const safeSeconds = Math.max(0, Number(seconds) || 0);
+  const minutes = Math.floor(safeSeconds / 60);
+  const wholeSeconds = Math.floor(safeSeconds % 60);
+  const centiseconds = Math.floor((safeSeconds % 1) * 100);
+  return `${String(minutes).padStart(2, "0")}:${String(wholeSeconds).padStart(2, "0")}.${String(centiseconds).padStart(2, "0")}`;
 }
 
 function applyTheme(theme) {
@@ -597,6 +740,8 @@ function saveDrawingState() {
 
 function getDrawingSnapshot() {
   return {
+    width: drawCanvas.width,
+    height: drawCanvas.height,
     strokes: drawingStrokes.map(cloneStroke),
     layers: drawingLayers.slice()
   };
@@ -610,6 +755,10 @@ function cloneStroke(stroke) {
 }
 
 function restoreDrawingSnapshot(snapshot) {
+  if (snapshot.width && snapshot.height) {
+    setDrawingCanvasSize(snapshot.width, snapshot.height);
+  }
+
   drawingStrokes = snapshot.strokes.map(cloneStroke);
   drawingLayers = snapshot.layers.slice();
   activeStroke = null;

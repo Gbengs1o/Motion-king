@@ -219,14 +219,10 @@ async function captureFrames({ markup, width, height, duration, fps, fullPage, f
     await page.evaluate(() => document.fonts && document.fonts.ready);
 
     const frameCount = Math.ceil(duration * fps);
-    const started = Date.now();
 
     for (let index = 0; index < frameCount; index += 1) {
       const targetMs = Math.round((index / fps) * 1000);
-      const elapsed = Date.now() - started;
-      if (targetMs > elapsed) {
-        await page.waitForTimeout(targetMs - elapsed);
-      }
+      await seekAnimationsToTime(page, targetMs);
 
       await page.screenshot({
         path: path.join(framesDir, `frame-${String(index + 1).padStart(5, "0")}.png`),
@@ -240,6 +236,22 @@ async function captureFrames({ markup, width, height, duration, fps, fullPage, f
   } finally {
     await browser.close();
   }
+}
+
+async function seekAnimationsToTime(page, currentTimeMs) {
+  await page.evaluate(async (time) => {
+    const animations = document.getAnimations({ subtree: true });
+
+    for (const animation of animations) {
+      if (animation.playState !== "paused") {
+        animation.pause();
+      }
+
+      animation.currentTime = time;
+    }
+
+    await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+  }, currentTimeMs);
 }
 
 async function launchRenderBrowser() {

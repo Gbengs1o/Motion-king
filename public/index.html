@@ -14,6 +14,7 @@
         <p>Paste HTML or SVG, preview it live, then render it as MP4 or PNG frames.</p>
       </div>
       <div class="topbar-actions">
+        <button id="newWindowButton" type="button">New Window</button>
         <button id="themeButton" type="button" aria-pressed="false">Dark</button>
         <button id="drawButton" type="button">Draw</button>
         <button id="openFileButton" type="button">Open HTML</button>
@@ -93,6 +94,20 @@
         </div>
 
         <div id="status" class="status" role="status" aria-live="polite"></div>
+
+        <section id="videoReview" class="video-review" aria-label="Rendered video review" hidden>
+          <div class="video-review-header">
+            <div>
+              <strong>Review render</strong>
+              <span id="videoReviewMeta">Pause on a frame, then capture it for markup.</span>
+            </div>
+            <div class="video-review-actions">
+              <button id="captureFrameButton" type="button">Capture Frame</button>
+              <a id="downloadVideoLink" href="#" download>Download MP4</a>
+            </div>
+          </div>
+          <video id="renderedVideo" controls playsinline preload="metadata"></video>
+        </section>
       </section>
     </main>
 

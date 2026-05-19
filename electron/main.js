@@ -5,6 +5,7 @@ const { startServer } = require("../server");
 
 let mainWindow;
 let webServer;
+let appUrl;
 const logPath = path.join(__dirname, "..", "electron.log");
 
 process.on("uncaughtException", logError);
@@ -15,8 +16,9 @@ app.commandLine.appendSwitch("enable-gpu-rasterization");
 app.commandLine.appendSwitch("enable-accelerated-2d-canvas");
 app.setAppUserModelId("MotionKing");
 
-ipcMain.handle("file:open", async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
+ipcMain.handle("file:open", async (event) => {
+  const ownerWindow = BrowserWindow.fromWebContents(event.sender) || mainWindow;
+  const result = await dialog.showOpenDialog(ownerWindow, {
     title: "Open HTML or SVG",
     properties: ["openFile"],
     filters: [
@@ -46,21 +48,25 @@ ipcMain.handle("clipboard:copyPng", async (_event, dataUrl) => {
   return true;
 });
 
+ipcMain.handle("window:new", () => {
+  createWindow(appUrl);
+  return true;
+});
+
 const gotLock = app.requestSingleInstanceLock();
 
 if (!gotLock) {
   app.quit();
 } else {
   app.on("second-instance", () => {
-    if (!mainWindow) return;
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
+    createWindow(appUrl);
   });
 
   app.whenReady().then(async () => {
     const started = await startServer(0);
     webServer = started.server;
-    createWindow(started.url);
+    appUrl = started.url;
+    createWindow(appUrl);
   }).catch(logError);
 
   app.on("window-all-closed", () => {
@@ -72,8 +78,11 @@ if (!gotLock) {
   app.on("activate", async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       const started = webServer ? null : await startServer(0);
-      if (started) webServer = started.server;
-      createWindow(started ? started.url : "http://127.0.0.1:3000");
+      if (started) {
+        webServer = started.server;
+        appUrl = started.url;
+      }
+      createWindow(appUrl);
     }
   });
 
@@ -86,9 +95,11 @@ if (!gotLock) {
 }
 
 function createWindow(url) {
+  if (!url) return;
+
   log(`Opening ${url}`);
 
-  mainWindow = new BrowserWindow({
+  const window = new BrowserWindow({
     width: 1280,
     height: 820,
     minWidth: 980,
@@ -107,18 +118,22 @@ function createWindow(url) {
     }
   });
 
-  mainWindow.loadURL(url);
-  mainWindow.webContents.on("did-fail-load", (_event, code, description) => {
+  mainWindow = window;
+
+  window.loadURL(url);
+  window.webContents.on("did-fail-load", (_event, code, description) => {
     log(`Load failed ${code}: ${description}`);
   });
 
-  mainWindow.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
+  window.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
     shell.openExternal(targetUrl);
     return { action: "deny" };
   });
 
-  mainWindow.on("closed", () => {
-    mainWindow = null;
+  window.on("closed", () => {
+    if (mainWindow === window) {
+      mainWindow = BrowserWindow.getAllWindows()[0] || null;
+    }
   });
 }
 
