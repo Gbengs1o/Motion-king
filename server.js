@@ -68,6 +68,33 @@ app.post("/api/render/start", (req, res) => {
   });
 });
 
+app.post("/api/capture-frame", async (req, res) => {
+  const { markup, width, height, currentTimeMs } = req.body || {};
+  const options = normalizeRenderOptions({ width, height, duration: 0.1, fps: 1, format: "image" });
+
+  if (!markup || typeof markup !== "string") {
+    return res.status(400).json({ error: "Paste or load some HTML/SVG before capturing." });
+  }
+
+  try {
+    const buffer = await captureFrameBuffer({
+      markup,
+      width: options.width,
+      height: options.height,
+      currentTimeMs: Math.max(0, Math.round(Number(currentTimeMs) || 0))
+    });
+
+    res.json({
+      dataUrl: `data:image/png;base64,${buffer.toString("base64")}`,
+      width: options.width,
+      height: options.height
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message || "Frame capture failed." });
+  }
+});
+
 app.get("/api/render/progress/:jobId", (req, res) => {
   const job = renderJobs.get(req.params.jobId);
   if (!job) {
@@ -112,12 +139,28 @@ async function renderToOutput({ jobId, markup, options, onProgress = () => {} })
     markup,
     width: options.width,
     height: options.height,
-    duration: options.duration,
+    duration: options.format === "image" ? 1 / options.fps : options.duration,
     fps: options.fps,
     fullPage: options.fullPage,
     framesDir,
     onProgress
   });
+
+  if (options.format === "image") {
+    onProgress(96, "Finalizing PNG image");
+    const imagePath = path.join(jobDir, "render.png");
+    await fs.copy(path.join(framesDir, "frame-00001.png"), imagePath);
+
+    return {
+      type: "image",
+      url: `/renders/${safeJobId}/render.png`,
+      frames: 1,
+      width: options.width,
+      height: options.height,
+      duration: options.duration,
+      fps: options.fps
+    };
+  }
 
   if (options.format === "sequence") {
     onProgress(92, "Packaging PNG sequence");
@@ -183,7 +226,7 @@ function normalizeRenderOptions(input) {
     return Math.min(Math.max(parsed, min), max);
   };
 
-  const normalizedFormat = input.format === "sequence" ? "sequence" : "video";
+  const normalizedFormat = ["image", "sequence", "video"].includes(input.format) ? input.format : "video";
 
   let width = Math.round(safeNumber(input.width, 900, 120, 3840));
   let height = Math.round(safeNumber(input.height, 300, 120, 2160));
@@ -215,8 +258,8 @@ async function captureFrames({ markup, width, height, duration, fps, fullPage, f
   });
 
   try {
-    await page.setContent(renderDocument(markup, width, height), { waitUntil: "networkidle" });
-    await page.evaluate(() => document.fonts && document.fonts.ready);
+    await page.setContent(renderDocument(markup, width, height), { waitUntil: "load", timeout: 15000 });
+    await page.evaluate(() => document.fonts ? document.fonts.ready : Promise.resolve());
 
     const frameCount = Math.ceil(duration * fps);
 
@@ -233,6 +276,27 @@ async function captureFrames({ markup, width, height, duration, fps, fullPage, f
       const frameProgress = Math.round(((index + 1) / frameCount) * 84) + 5;
       onProgress(Math.min(frameProgress, 89), `Captured frame ${index + 1} of ${frameCount}`);
     }
+  } finally {
+    await browser.close();
+  }
+}
+
+async function captureFrameBuffer({ markup, width, height, currentTimeMs = 0 }) {
+  const browser = await launchRenderBrowser();
+  const page = await browser.newPage({
+    viewport: { width, height },
+    deviceScaleFactor: 1
+  });
+
+  try {
+    await page.setContent(renderDocument(markup, width, height), { waitUntil: "load", timeout: 15000 });
+    await page.evaluate(() => document.fonts ? document.fonts.ready : Promise.resolve());
+    await seekAnimationsToTime(page, currentTimeMs);
+
+    return await page.screenshot({
+      type: "png",
+      fullPage: false
+    });
   } finally {
     await browser.close();
   }
@@ -257,10 +321,13 @@ async function seekAnimationsToTime(page, currentTimeMs) {
 async function launchRenderBrowser() {
   const launchOptions = {
     headless: true,
+    timeout: 30000,
     args: [
+      "--no-sandbox",
       "--ignore-gpu-blocklist",
       "--enable-gpu-rasterization",
-      "--enable-accelerated-2d-canvas"
+      "--enable-accelerated-2d-canvas",
+      "--disable-dev-shm-usage"
     ]
   };
 
