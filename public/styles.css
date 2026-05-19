@@ -223,7 +223,7 @@ button:disabled {
   inset: 0;
   z-index: 20;
   display: grid;
-  grid-template-rows: 56px 1fr;
+  grid-template-rows: 56px 1fr auto;
   background: #0b1014;
 }
 
@@ -242,10 +242,27 @@ button:disabled {
   font-weight: 700;
 }
 
+.full-view-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .full-view-bar button {
   border-color: rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.08);
   color: #ffffff;
+}
+
+#freezeFullViewButton {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+#freezeFullViewButton[aria-pressed="true"] {
+  border-color: var(--focus);
+  background: var(--focus);
+  color: #111416;
 }
 
 #fullPreviewFrame {
@@ -256,6 +273,51 @@ button:disabled {
   contain: strict;
   transform: translateZ(0);
   will-change: transform, contents;
+}
+
+.full-console {
+  max-height: 34vh;
+  min-height: 150px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  background: #080c10;
+  color: #f4f1ea;
+}
+
+.full-console[hidden] {
+  display: none;
+}
+
+.full-console-header {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.full-console-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.full-console-actions button {
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+#consoleOutput {
+  max-height: calc(34vh - 44px);
+  min-height: 106px;
+  margin: 0;
+  overflow: auto;
+  padding: 12px;
+  color: #d8e1e6;
+  font: 12px/1.45 "Cascadia Mono", Consolas, monospace;
+  white-space: pre-wrap;
 }
 
 .controls {
@@ -687,6 +749,189 @@ button:disabled {
   font-size: 13px;
 }
 
+.flipbook-panel {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  width: min(1500px, 100%);
+  height: min(920px, 100%);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.42);
+}
+
+.flipbook-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  max-height: 142px;
+  overflow: auto;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.flipbook-toolbar button {
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.flipbook-toolbar label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.flipbook-toolbar input[type="number"] {
+  width: 72px;
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 8px;
+  background: var(--panel-strong);
+  color: var(--text);
+}
+
+.flipbook-toolbar input[type="color"] {
+  width: 56px;
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  background: var(--panel-strong);
+}
+
+.flip-check {
+  min-height: 40px;
+  align-self: center;
+  text-transform: none;
+}
+
+.flipbook-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 300px);
+  min-height: 0;
+}
+
+.flipbook-stage-wrap {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+}
+
+.flipbook-stage {
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+  background:
+    linear-gradient(45deg, color-mix(in srgb, var(--border) 70%, transparent) 25%, transparent 25%),
+    linear-gradient(-45deg, color-mix(in srgb, var(--border) 70%, transparent) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, color-mix(in srgb, var(--border) 70%, transparent) 75%),
+    linear-gradient(-45deg, transparent 75%, color-mix(in srgb, var(--border) 70%, transparent) 75%);
+  background-color: var(--preview-bg);
+  background-position: 0 0, 14px 0, 14px -14px, 0 14px;
+  background-size: 28px 28px;
+}
+
+#flipCanvas {
+  display: block;
+  width: min(100%, 960px);
+  height: auto;
+  max-width: 960px;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 20px 54px rgba(0, 0, 0, 0.28);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.frame-note-label {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+#flipNoteInput {
+  width: 100%;
+  min-height: 70px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--panel-strong);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.flipbook-side {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel-strong) 62%, transparent);
+}
+
+.flipbook-count {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.flip-frame-strip {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  overflow: auto;
+  padding: 12px;
+}
+
+.flip-frame-button {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  min-height: 0;
+  justify-items: stretch;
+  border-radius: 8px;
+  padding: 8px;
+  text-align: left;
+}
+
+.flip-frame-button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.flip-frame-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #ffffff;
+  object-fit: cover;
+}
+
+.flip-frame-label {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 @media (max-width: 900px) {
   .topbar {
     align-items: flex-start;
@@ -720,8 +965,18 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .flipbook-body {
+    grid-template-columns: 1fr;
+  }
+
   .layers-panel {
     max-height: 170px;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .flipbook-side {
+    max-height: 220px;
     border-left: 0;
     border-top: 1px solid var(--border);
   }
@@ -732,8 +987,18 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .flipbook-body {
+    grid-template-columns: 1fr;
+  }
+
   .layers-panel {
     max-height: 150px;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .flipbook-side {
+    max-height: 220px;
     border-left: 0;
     border-top: 1px solid var(--border);
   }
